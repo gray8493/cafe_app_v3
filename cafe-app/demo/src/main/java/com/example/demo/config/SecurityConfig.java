@@ -3,6 +3,7 @@ package com.example.demo.config;
 import com.example.demo.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,35 +28,33 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())  // Tạm thời tắt CSRF để kiểm tra
+            .csrf(csrf -> csrf.disable()) // Tạm thời tắt CSRF để kiểm tra
             .authorizeHttpRequests(auth -> auth
-                // 1. Cho phép truy cập công khai
+                // 1. Các URL cho phép truy cập công khai (permitAll)
                 .requestMatchers(
                     "/", 
                     "/register", 
                     "/css/**", 
                     "/js/**", 
                     "/images/**",
-                    "/static/**", // Bao gồm cả suggestion_display.html
+                    "/static/**",
                     "/webjars/**",
-                    "/ws-suggest/**" // Cho phép kết nối WebSocket
+                    "/ws-suggest/**", // Cho phép kết nối WebSocket
+                    "/api/suggestions/**" // API gợi ý
                 ).permitAll()
 
-                // 2. Phân quyền cho API
-                // API đặt hàng yêu cầu đã đăng nhập (cả ADMIN và USER đều có thể)
-                .requestMatchers("/api/orders/**").authenticated() 
-                // API dashboard chỉ dành cho ADMIN
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                // API gợi ý có thể cho phép tất cả (nếu bạn muốn) hoặc yêu cầu đăng nhập
-                .requestMatchers("/api/suggestions/**").permitAll()
+                // 2. Các URL yêu cầu xác thực nhưng không cần vai trò cụ thể (authenticated)
+                .requestMatchers("/api/orders/**").authenticated() // API đặt hàng
+                .requestMatchers(HttpMethod.GET, "/api/admin/menu/grouped").authenticated() // API tải menu cho trang đặt hàng
 
-                // 3. Phân quyền cho các trang giao diện (/admin)
-                // USER chỉ được vào trang đặt hàng
+                // 3. Các URL yêu cầu vai trò USER (hoặc ADMIN)
                 .requestMatchers("/admin/menu/order").hasAnyRole("USER", "ADMIN")
-                // ADMIN có thể vào tất cả các trang còn lại dưới /admin/
-                .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                // 4. Tất cả các yêu cầu khác đều cần đăng nhập
+                // 4. Các URL chỉ yêu cầu vai trò ADMIN (quy tắc chung hơn)
+                .requestMatchers("/api/admin/**").hasRole("ADMIN") // Các API admin khác
+                .requestMatchers("/admin/**").hasRole("ADMIN")     // Các trang admin khác
+
+                // 5. Bất kỳ yêu cầu nào khác chưa được định nghĩa đều cần xác thực
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
