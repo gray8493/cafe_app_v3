@@ -22,25 +22,29 @@ public class MenuItem {
     @Column(nullable = false) // Đảm bảo mọi món đều có danh mục
     private String category; // Ví dụ: "Cafe", "Trà Sữa", "Topping"
 
-   
-    private Double priceS; // Giá cho size Nhỏ
-    @Column(nullable = false)
-    private Double priceM; // Giá cho size Vừa (cơ bản)
-    private Double priceL; // Giá cho size Lớn
+    
+    @Column(name = "prices") // Ánh xạ tới cột 'prices'
+    private Double priceS;
+
+    @Column(name = "pricem", nullable = false) // Ánh xạ tới cột 'pricem'
+    private Double price; // Thuộc tính 'price' trong Java sẽ đại diện cho giá size M
+
+    @Column(name = "pricel") // Ánh xạ tới cột 'pricel'
+    private Double priceL;
     // Default constructor
     public MenuItem() {
     }
 
     // Parameterized constructor
-   public MenuItem(String name, String description, String image, boolean available, String category,
-                    Double priceS, Double priceM, Double priceL) {
+    public MenuItem(String name, String description, String image, boolean available,
+                    String category, Double priceS, Double priceM, Double priceL) {
         this.name = name;
         this.description = description;
         this.image = image;
         this.available = available;
         this.category = category;
         this.priceS = priceS;
-        this.priceM = priceM;
+        this.price = priceM; // Gán giá size M cho thuộc tính 'price'
         this.priceL = priceL;
     }
 
@@ -61,8 +65,8 @@ public class MenuItem {
     public void setCategory(String category) { this.category = category; }
     public Double getPriceS() { return priceS; }
     public void setPriceS(Double priceS) { this.priceS = priceS; }
-    public Double getPriceM() { return priceM; }
-    public void setPriceM(Double priceM) { this.priceM = priceM; }
+    public Double getPriceM() { return price; }
+    public void setPriceM(Double priceM) { this.price = priceM; }
     public Double getPriceL() { return priceL; }
     public void setPriceL(Double priceL) { this.priceL = priceL; }
     
@@ -70,7 +74,7 @@ public class MenuItem {
      * Lấy giá mặc định (size M)
      */
     public Double getPrice() {
-        return priceM;
+        return price;
     }
     
     /**
@@ -78,12 +82,14 @@ public class MenuItem {
      * @param size Kích thước (S, M, L)
      * @return Giá tương ứng với size, mặc định là size M nếu size không hợp lệ
      */
-    public Double getPrice(String size) {
-        if (size == null) return priceM;
-        return switch(size.toUpperCase()) {
-            case "S" -> priceS != null ? priceS : priceM;
-            case "L" -> priceL != null ? priceL : priceM;
-            default -> priceM;
-        };
-    }
-}
+    public Double getPriceBySize(String size) {
+        switch (size.toUpperCase()) {
+            case "S":
+                return priceS;
+            case "L":
+                return priceL;
+            case "M":
+            default:
+                return price; // Trả về giá size M nếu size không hợp lệ
+        }
+} }
