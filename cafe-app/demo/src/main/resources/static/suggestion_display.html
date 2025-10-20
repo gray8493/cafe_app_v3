@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Gợi ý cho bạn</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; text-align: center; margin: 0; }
+        .suggestion-box { background: white; padding: 40px 50px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 80%; max-width: 700px; transition: all 0.3s ease; }
+        .suggestion-box.hidden { opacity: 0; transform: scale(0.9); }
+        h1 { color: #333; font-size: 2.5em; margin-bottom: 15px; }
+        p { color: #666; font-size: 1.2em; }
+        #suggestion { color: #007bff; font-size: 1.8em; font-weight: bold; margin-top: 20px; min-height: 50px; }
+        #details { color: #888; font-size: 1em; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="suggestion-box" id="suggestionBox">
+        <h1>Dr. Drink Gợi ý</h1>
+        <p>Dựa trên phân tích, chúng tôi nghĩ bạn sẽ thích:</p>
+        <div id="suggestion">... Chờ bạn chụp ảnh ...</div>
+        <div id="details"></div>
+    </div>
+
+    <!-- Tải các thư viện cần thiết cho WebSocket client -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <script>
+        const suggestionEl = document.getElementById('suggestion');
+        const detailsEl = document.getElementById('details');
+        const suggestionBoxEl = document.getElementById('suggestionBox');
+        let stompClient = null;
+
+        function connect() {
+            // Tạo kết nối SockJS đến endpoint đã đăng ký trong WebSocketConfig
+            const socket = new SockJS('/ws-suggest');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function (frame) {
+                console.log('Đã kết nối: ' + frame);
+                
+                // Đăng ký (subscribe) vào topic "/topic/suggestions"
+                // Khi có tin nhắn mới trên topic này, hàm callback sẽ được gọi
+                stompClient.subscribe('/topic/suggestions', function (message) {
+                    showSuggestion(JSON.parse(message.body));
+                });
+            }, function(error) {
+                // Xử lý khi mất kết nối, thử kết nối lại sau 5 giây
+                console.error('Mất kết nối WebSocket. Đang thử kết nối lại...');
+                setTimeout(connect, 5000);
+            });
+        }
+
+        function showSuggestion(data) {
+            console.log("Đã nhận gợi ý: ", data);
+            
+            // Thêm hiệu ứng
+            suggestionBoxEl.classList.add('hidden');
+            
+            setTimeout(() => {
+                // Cập nhật nội dung HTML
+                suggestionEl.textContent = data.suggestion;
+                detailsEl.textContent = `(Tuổi ước tính: ${data.estimatedAge}, Tâm trạng: ${data.detectedEmotion})`;
+                
+                // Hiển thị lại với hiệu ứng
+                suggestionBoxEl.classList.remove('hidden');
+            }, 300); // Đợi 0.3 giây để hiệu ứng ẩn hoàn tất
+        }
+
+        // Bắt đầu kết nối khi trang được tải
+        document.addEventListener('DOMContentLoaded', connect);
+    </script>
+</body>
+</html>```
+
+---
+

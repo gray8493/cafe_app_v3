@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Đặt hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <!-- Thư viện tạo mã QR -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .main-container { padding: 2rem; }
+        .menu-item-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #dee2e6; border-radius: 0.5rem; }
+        .menu-item-card:hover { transform: translateY(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .nav-pills .nav-link { color: #6c757d; border: 1px solid transparent; cursor: pointer; }
+        .nav-pills .nav-link.active { color: #0d6efd; background-color: transparent; border-bottom: 2px solid #0d6efd; border-radius: 0; }
+        .order-summary-card { position: sticky; top: 2rem; border-radius: 0.5rem; }
+        #cart-items-list { max-height: 35vh; overflow-y: auto; }
+        #cart-items-list .list-group-item { display: flex; justify-content: space-between; align-items: center; }
+        .item-details { flex-grow: 1; }
+        .item-details small { color: #6c757d; display: block; font-size: 0.8em; }
+        #searchInput { border-radius: 50rem; padding-left: 2.5rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' class='bi bi-search' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 0.75rem center; }
+        .payment-section .form-check { margin-bottom: 0.5rem; }
+        #cashPaymentDetails { display: none; }
+        #qrCodeContainer { text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+<div class="container-fluid main-container">
+    <div class="row">
+        <!-- Cột Menu -->
+        <div class="col-lg-8">
+            <h1 class="mb-4">Menu Đặt hàng</h1>
+            <div class="mb-3"><input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm món ăn..."></div>
+            <ul class="nav nav-pills mb-3" id="category-tabs"></ul>
+            <div class="tab-content" id="menu-items-container"></div>
+        </div>
+
+        <!-- Cột Giỏ hàng -->
+        <div class="col-lg-4">
+            <div class="card order-summary-card">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-4">Đơn hàng hiện tại</h4>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Loại đơn hàng:</label>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="orderType" id="eatInRadio" value="EAT_IN" checked><label class="form-check-label" for="eatInRadio">Dùng tại chỗ</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="orderType" id="takeAwayRadio" value="TAKE_AWAY"><label class="form-check-label" for="takeAwayRadio">Mang đi</label></div>
+                    </div>
+                    <div class="mb-3"><label for="tableNumberInput" class="form-label fw-bold">Số bàn:</label><input type="text" class="form-control" id="tableNumberInput" placeholder="Bỏ trống nếu mang đi"></div>
+                    <div class="mb-3"><label for="customerIdInput" class="form-label fw-bold">ID Khách hàng (nếu có):</label><input type="number" class="form-control" id="customerIdInput" placeholder="Để trống cho khách lẻ"></div>
+                    <hr>
+                    
+                    <ul class="list-group list-group-flush mb-3" id="cart-items-list"><li class="list-group-item text-muted border-0 px-0">Chưa có món nào trong đơn hàng.</li></ul>
+                    
+                    <div class="d-flex justify-content-between fw-bold fs-5 pt-3 border-top">
+                        <span>Tổng cộng:</span>
+                        <span id="cart-total-amount">0₫</span>
+                    </div>
+                    
+                    <!-- PHẦN THANH TOÁN -->
+                    <div class="mt-4 border-top pt-3 payment-section">
+                        <label class="form-label fw-bold">Phương thức thanh toán:</label>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" id="cashRadio" value="CASH" checked onchange="togglePaymentDetails()"><label class="form-check-label" for="cashRadio">Tiền mặt</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" id="qrRadio" value="QR" onchange="togglePaymentDetails()"><label class="form-check-label" for="qrRadio">Quét mã QR</label></div>
+                        <div id="cashPaymentDetails" class="mt-3">
+                            <div class="mb-2"><label for="cashReceivedInput" class="form-label">Tiền khách đưa:</label><input type="number" class="form-control" id="cashReceivedInput" placeholder="Nhập số tiền" oninput="calculateChange()"></div>
+                            <div class="d-flex justify-content-between"><label>Tiền thối lại:</label><span id="changeAmount" class="fw-bold">0₫</span></div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button class="btn btn-success btn-lg" onclick="handlePayment()">Thanh toán & Hoàn tất</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tùy chỉnh Món -->
+<div class="modal fade" id="itemCustomizationModal" tabindex="-1">
+    <!-- ... (Nội dung Modal giữ nguyên) ... -->
+</div>
+
+<!-- Modal Hiển thị mã QR -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Quét mã VietQR để thanh toán</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div id="qrCodeContainer"></div><p class="text-center mt-2">Tổng số tiền: <strong id="qrTotalAmount"></strong></p></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    // --- KHAI BÁO BIẾN TOÀN CỤC ---
+    const menuApiUrl = '/api/admin/menu/grouped';
+    const orderApiUrl = '/api/orders';
+    
+    let menuData = {}, shoppingCart = [], currentItemForModal = null, itemCustomizationModal = null, qrCodeModal = null;
+    let currentTotal = 0;
+
+    // --- CÁC HÀM TIỆN ÍCH ---
+    function formatCurrency(amount) { return (amount || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }); }
+
+    // --- LOGIC HIỂN THỊ MENU & TÌM KIẾM (KHÔNG ĐỔI) ---
+    // (Bao gồm các hàm: fetchMenuData, renderMenuTabs, switchCategory, renderMenuItems, searchMenuItems)
+
+    // --- LOGIC MODAL TÙY CHỈNH MÓN (KHÔNG ĐỔI) ---
+    // (Bao gồm các hàm: openCustomizationModal, updateModalPrice)
+
+    // --- LOGIC GIỎ HÀNG (CẬP NHẬT NHỎ) ---
+    function addItemToCart() { /* ... */ shoppingCart.push(cartItem); renderShoppingCart(); itemCustomizationModal.hide(); }
+    function renderShoppingCart() {
+        const cartList = document.getElementById('cart-items-list');
+        cartList.innerHTML = '';
+        let totalAmount = 0;
+        if (shoppingCart.length === 0) {
+            cartList.innerHTML = '<li class="list-group-item text-muted border-0 px-0">Chưa có món nào trong đơn hàng.</li>';
+        } else {
+            shoppingCart.forEach(item => {
+                totalAmount += item.finalPrice;
+                /* ... (code render item trong giỏ hàng) ... */
+            });
+        }
+        document.getElementById('cart-total-amount').textContent = formatCurrency(totalAmount);
+        currentTotal = totalAmount; // Lưu tổng tiền vào biến toàn cục
+        calculateChange(); // Cập nhật tiền thối lại mỗi khi giỏ hàng thay đổi
+    }
+    function removeItemFromCart(cartId) { /* ... */ }
+
+    // --- LOGIC THANH TOÁN MỚI ---
+    function togglePaymentDetails() {
+        document.getElementById('cashPaymentDetails').style.display = document.getElementById('cashRadio').checked ? 'block' : 'none';
+        if (!document.getElementById('cashRadio').checked) {
+            document.getElementById('cashReceivedInput').value = '';
+            calculateChange();
+        }
+    }
+
+    function calculateChange() {
+        if (!document.getElementById('cashRadio').checked) return;
+        const cashReceived = parseFloat(document.getElementById('cashReceivedInput').value) || 0;
+        const change = cashReceived - currentTotal;
+        document.getElementById('changeAmount').textContent = formatCurrency(change >= 0 ? change : 0);
+    }
+
+    function generateAndShowQR() {
+        const bankId = "970415"; // Ví dụ: VietinBank
+        const accountNumber = "123456789"; // SỐ TÀI KHOẢN CỦA BẠN
+        const description = `HD${Date.now()}`; // Nội dung chuyển khoản
+        
+        const qrContainer = document.getElementById('qrCodeContainer');
+        qrContainer.innerHTML = '';
+        
+        // Sử dụng API của vietqr.io để tạo ảnh QR code
+        const qrImageUrl = `https://img.vietqr.io/image/${bankId}-${accountNumber}-print.png?amount=${Math.round(currentTotal)}&addInfo=${encodeURIComponent(description)}`;
+        
+        const img = document.createElement('img');
+        img.src = qrImageUrl;
+        img.style.width = '256px';
+        img.style.height = '256px';
+        qrContainer.appendChild(img);
+        
+        document.getElementById('qrTotalAmount').textContent = formatCurrency(currentTotal);
+        qrCodeModal.show();
+    }
+
+    // --- XỬ LÝ CHÍNH KHI NHẤN NÚT ---
+    async function handlePayment() {
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+        
+        if (shoppingCart.length === 0) {
+            alert('Vui lòng thêm món vào đơn hàng.');
+            return;
+        }
+
+        if (paymentMethod === 'QR') {
+            generateAndShowQR();
+            // Đối với QR, nhân viên sẽ tự xác nhận đã nhận tiền và sau đó nhấn một nút khác để lưu đơn.
+            // Để đơn giản, ở đây chúng ta chỉ hiện QR và không tự động lưu đơn.
+            // Bạn có thể thêm một nút "Đã nhận tiền & Lưu đơn" vào modal QR nếu muốn tự động hóa.
+            return; 
+        }
+
+        if (paymentMethod === 'CASH') {
+            const cashReceived = parseFloat(document.getElementById('cashReceivedInput').value) || 0;
+            if (cashReceived < currentTotal) {
+                alert('Số tiền khách đưa không đủ.');
+                return;
+            }
+            // Nếu đủ tiền, tiến hành gửi đơn hàng đến server
+            await confirmAndSaveOrder(paymentMethod, cashReceived);
+        }
+    }
+
+    async function confirmAndSaveOrder(paymentMethod, cashReceived = null) {
+        const customerId = document.getElementById('customerIdInput').value ? parseInt(document.getElementById('customerIdInput').value) : null;
+        const tableNumber = document.getElementById('tableNumberInput').value.trim();
+        const orderType = document.querySelector('input[name="orderType"]:checked').value;
+
+        if (orderType === 'EAT_IN' && !tableNumber) {
+            alert('Vui lòng nhập số bàn.');
+            return;
+        }
+
+        const orderItemsDto = shoppingCart.map(item => ({
+            menuItemId: item.menuItemId, quantity: item.quantity,
+            selectedSize: item.selectedSize, notes: item.notes,
+            toppingIds: item.toppingIds
+        }));
+
+        const orderRequestDto = {
+            customerId, orderType, tableNumber,
+            paymentMethod: paymentMethod, 
+            cashReceived: cashReceived,
+            items: orderItemsDto
+        };
+        
+        try {
+            const response = await fetch(orderApiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderRequestDto)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Lỗi không xác định' }));
+                throw new Error(errorData.message || `Lỗi server: ${response.status}`);
+            }
+            const newOrder = await response.json();
+            alert(`Tạo đơn hàng thành công! Mã đơn hàng: ${newOrder.id}`);
+            
+            // Reset mọi thứ
+            shoppingCart = [];
+            document.getElementById('customerIdInput').value = '';
+            document.getElementById('tableNumberInput').value = '';
+            document.getElementById('cashReceivedInput').value = '';
+            document.getElementById('eatInRadio').checked = true;
+            renderShoppingCart();
+        } catch (error) {
+            console.error('Lỗi khi xác nhận đơn hàng:', error);
+            alert('Lỗi khi xác nhận đơn hàng: ' + error.message);
+        }
+    }
+
+    // --- KHỞI TẠO ---
+    document.addEventListener('DOMContentLoaded', () => {
+        itemCustomizationModal = new bootstrap.Modal(document.getElementById('itemCustomizationModal'));
+        qrCodeModal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+        document.getElementById('searchInput').addEventListener('input', searchMenuItems);
+        fetchMenuData();
+        togglePaymentDetails(); // Chạy lần đầu
+    });
+</script>
+</body>
+</html>

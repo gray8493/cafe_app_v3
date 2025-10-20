@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản trị - Hệ thống Quán cà phê</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; }
+        .sidebar { min-height: 100vh; background-color: #343a40; color: white; padding-top: 20px; }
+        .sidebar .nav-link { color: rgba(255, 255, 255, 0.8); margin: 5px 0; border-radius: 5px; padding: 10px 15px; display: flex; align-items: center; }
+        .sidebar .nav-link:hover { background-color: #495057; color: white; }
+        .sidebar .nav-link.active { background-color: #0d6efd; color: white; }
+        .sidebar .nav-link i { font-size: 1.2em; margin-right: 10px; }
+        .main-content { padding: 20px; }
+        .card-text.display-6 { font-size: 2.5rem; }
+        
+        /* Styles for Order History */
+        .order-card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; padding: 20px; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 15px; }
+        .order-id { font-size: 1.2em; font-weight: bold; color: #0d6efd; }
+        .order-status { padding: 5px 15px; border-radius: 20px; font-size: 0.85em; font-weight: 600; text-transform: uppercase; }
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-completed { background-color: #d4edda; color: #155724; }
+        .status-cancelled { background-color: #f8d7da; color: #721c24; }
+        .total-amount { font-size: 1.3em; font-weight: bold; color: #28a745; }
+        .filter-section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .empty-state, .loading { text-align: center; padding: 60px 20px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar bg-dark">
+                <!-- ... (Sidebar giữ nguyên như trước, đảm bảo link /admin là active) ... -->
+                 <div class="position-sticky">
+                    <div class="text-center mb-4">
+                        <h4 class="text-white mt-3">Quản trị viên</h4>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/admin"> <!-- Đặt active ở đây -->
+                                <i class="bi bi-speedometer2"></i>Bảng điều khiển
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/menu">
+                                <i class="bi bi-menu-button-wide"></i> Quản lý menu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/menu/order">
+                                <i class="bi bi-cart-plus"></i> Đặt hàng
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/customers">
+                                <i class="bi bi-people-fill"></i> Quản lý khách hàng
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <form th:action="@{/logout}" method="post">
+                                <button type="submit" class="btn btn-outline-light w-100">
+                                    <i class="bi bi-box-arrow-in-left"></i> Đăng xuất
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <h1 class="h2 pt-3 pb-2 mb-3">Trang quản trị</h1>
+
+                <!-- Nav Tabs -->
+                <ul class="nav nav-tabs" id="adminTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">
+                            <i class="bi bi-speedometer2"></i> Tổng quan
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                            <i class="bi bi-clock-history"></i> Lịch sử đơn hàng
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="adminTabContent">
+                    <!-- Tab 1: Dashboard -->
+                    <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                        <div class="pt-3">
+                            <div id="dashboardAlert" class="alert" style="display: none;"></div>
+                            <!-- Thống kê nhanh -->
+                            <div class="row mb-4">
+                                <div class="col-md-3"><div class="card text-white bg-primary"><div class="card-body"><h5 class="card-title">Tổng đơn hàng</h5><p class="card-text display-6" id="totalOrdersCount">0</p></div></div></div>
+                                <div class="col-md-3"><div class="card text-white bg-success"><div class="card-body"><h5 class="card-title">Doanh thu hôm nay</h5><p class="card-text display-6" id="todayRevenue">0đ</p></div></div></div>
+                                <div class="col-md-3"><div class="card text-white bg-info"><div class="card-body"><h5 class="card-title">Tổng sản phẩm</h5><p class="card-text display-6" id="totalProductsCount">0</p></div></div></div>
+                                <div class="col-md-3"><div class="card text-white bg-warning"><div class="card-body"><h5 class="card-title">Khách hàng</h5><p class="card-text display-6" id="totalCustomersCount">0</p></div></div></div>
+                            </div>
+                            <!-- Các chức năng khác -->
+                            <div class="row">
+                                <div class="col-md-6"><div class="card mb-4"><div class="card-header"><h5 class="mb-0">Đơn hàng mới nhất</h5></div><div class="card-body" id="latestOrdersBody"><p class="text-muted">Đang tải...</p></div></div></div>
+                                <div class="col-md-6"><div class="card"><div class="card-header"><h5 class="mb-0">Sản phẩm bán chạy</h5></div><div class="card-body" id="topSellingProductsBody"><p class="text-muted">Đang tải...</p></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Order History -->
+                    <div class="tab-pane fade" id="history" role="tabpanel">
+                        <div class="pt-3">
+                            <!-- Filter Section -->
+                            <div class="filter-section">
+                                <div class="row align-items-end g-3">
+                                    <div class="col-md-4"><label for="searchInput" class="form-label">Tìm kiếm</label><input type="text" class="form-control" id="searchInput" placeholder="Tìm ID, khách hàng, số bàn..."></div>
+                                    <div class="col-md-3"><label for="statusFilter" class="form-label">Trạng thái</label><select class="form-select" id="statusFilter"><option value="">Tất cả</option><option value="PENDING">Đang chờ</option><option value="COMPLETED">Hoàn thành</option><option value="CANCELLED">Đã hủy</option></select></div>
+                                    <div class="col-md-3"><label for="dateFilter" class="form-label">Ngày</label><input type="date" class="form-control" id="dateFilter"></div>
+                                    <div class="col-md-2"><button class="btn btn-primary w-100" onclick="applyFilters()"><i class="bi bi-funnel"></i> Lọc</button></div>
+                                </div>
+                            </div>
+                            <!-- Loading State -->
+                            <div id="loadingState" class="loading" style="display: none;"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Đang tải lịch sử đơn hàng...</p></div>
+                            <!-- Orders Container -->
+                            <div id="ordersContainer"></div>
+                            <!-- Empty State -->
+                            <div id="emptyState" class="empty-state" style="display: none;"><i class="bi bi-inbox"></i><h4>Chưa có đơn hàng nào</h4></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // --- BIẾN TOÀN CỤC ---
+        const dashboardApiUrl = '/api/admin/dashboard/stats';
+        const orderHistoryApiUrl = '/api/orders';
+        let allOrders = [];
+        let historyLoaded = false; // Cờ để chỉ tải lịch sử một lần
+
+        // --- HÀM TRỢ GIÚP ---
+        function formatCurrency(amount) { return (amount != null ? amount : 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }); }
+        function formatDateTime(dateStr) { if (!dateStr) return ''; return new Date(dateStr).toLocaleString('vi-VN'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
+        // --- LOGIC CHO DASHBOARD ---
+        async function fetchDashboardStats() {
+            try {
+                const response = await fetch(dashboardApiUrl);
+                if (!response.ok) throw new Error(`Lỗi: ${response.status}`);
+                const stats = await response.json();
+                
+                document.getElementById('totalOrdersCount').textContent = stats.totalOrders.toLocaleString('vi-VN');
+                document.getElementById('todayRevenue').textContent = formatCurrency(stats.todayRevenue);
+                document.getElementById('totalProductsCount').textContent = stats.totalProducts.toLocaleString('vi-VN');
+                document.getElementById('totalCustomersCount').textContent = stats.totalCustomers.toLocaleString('vi-VN');
+
+                const latestOrdersBody = document.getElementById('latestOrdersBody');
+                latestOrdersBody.innerHTML = '';
+                if (stats.latestOrders && stats.latestOrders.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-unstyled';
+                    stats.latestOrders.forEach(order => {
+                        ul.innerHTML += `<li class="border-bottom py-2"><strong>#${order.id}</strong> - ${escapeHtml(order.customerName)} - ${formatCurrency(order.totalAmount)}</li>`;
+                    });
+                    latestOrdersBody.appendChild(ul);
+                } else {
+                    latestOrdersBody.innerHTML = '<p class="text-muted">Không có đơn hàng nào gần đây.</p>';
+                }
+
+                const topSellingProductsBody = document.getElementById('topSellingProductsBody');
+                topSellingProductsBody.innerHTML = '';
+                if (stats.topSellingProducts && stats.topSellingProducts.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-unstyled';
+                    stats.topSellingProducts.forEach(product => {
+                        ul.innerHTML += `<li class="border-bottom py-2"><strong>${escapeHtml(product.itemName)}</strong> - Đã bán: ${product.totalQuantitySold}</li>`;
+                    });
+                    topSellingProductsBody.appendChild(ul);
+                } else {
+                    topSellingProductsBody.innerHTML = '<p class="text-muted">Chưa có dữ liệu.</p>';
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải dữ liệu dashboard:', error);
+                document.getElementById('dashboardAlert').textContent = 'Không thể tải dữ liệu tổng quan.';
+                document.getElementById('dashboardAlert').style.display = 'block';
+            }
+        }
+
+        // --- LOGIC CHO LỊCH SỬ ĐƠN HÀNG ---
+        async function loadOrderHistory() {
+            const loadingState = document.getElementById('loadingState');
+            const ordersContainer = document.getElementById('ordersContainer');
+            const emptyState = document.getElementById('emptyState');
+            
+            loadingState.style.display = 'block';
+            ordersContainer.innerHTML = '';
+            emptyState.style.display = 'none';
+
+            try {
+                const response = await fetch(orderHistoryApiUrl);
+                if (!response.ok) throw new Error(`Lỗi: ${response.status}`);
+                allOrders = await response.json();
+                
+                loadingState.style.display = 'none';
+                if (allOrders.length === 0) {
+                    emptyState.style.display = 'block';
+                } else {
+                    displayOrders(allOrders);
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải lịch sử đơn hàng:', error);
+                loadingState.style.display = 'none';
+                ordersContainer.innerHTML = `<div class="alert alert-danger">Không thể tải lịch sử đơn hàng.</div>`;
+            }
+        }
+
+        function displayOrders(orders) {
+            const ordersContainer = document.getElementById('ordersContainer');
+            const emptyState = document.getElementById('emptyState');
+            ordersContainer.innerHTML = '';
+            
+            if (orders.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                orders.forEach(order => {
+                    ordersContainer.appendChild(createOrderCard(order));
+                });
+            }
+        }
+        
+        function createOrderCard(order) {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            const statusClass = { 'PENDING': 'status-pending', 'COMPLETED': 'status-completed', 'CANCELLED': 'status-cancelled' }[order.status] || 'status-pending';
+            const statusText = { 'PENDING': 'Đang chờ', 'COMPLETED': 'Hoàn thành', 'CANCELLED': 'Đã hủy' }[order.status] || order.status;
+            
+            let itemsHtml = (order.orderItems || []).map(item => `
+                <div class="d-flex justify-content-between py-1">
+                    <span>${item.quantity}x ${escapeHtml(item.itemName)}</span>
+                    <span class="fw-bold">${formatCurrency(item.priceAtOrder * item.quantity)}</span>
+                </div>`).join('');
+
+            card.innerHTML = `
+                <div class="order-header">
+                    <div>
+                        <div class="order-id">Đơn hàng #${order.id}</div>
+                        <div class="small text-muted">
+                            <i class="bi bi-calendar3"></i> ${formatDateTime(order.orderDate)}
+                            ${order.tableNumber ? `<span class="ms-3"><i class="bi bi-table"></i> Bàn ${escapeHtml(order.tableNumber)}</span>` : ''}
+                        </div>
+                    </div>
+                    <span class="order-status ${statusClass}">${statusText}</span>
+                </div>
+                <div>${itemsHtml}</div>
+                <div class="order-footer">
+                    <div class="small text-muted"><i class="bi bi-person"></i> ${escapeHtml(order.customer ? order.customer.name : 'Khách vãng lai')}</div>
+                    <div class="total-amount">${formatCurrency(order.totalAmount)}</div>
+                </div>
+            `;
+            return card;
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            
+            let filteredOrders = allOrders.filter(order => {
+                const matchesSearch = !searchTerm || 
+                    order.id.toString().includes(searchTerm) ||
+                    (order.customer && order.customer.name.toLowerCase().includes(searchTerm)) ||
+                    (order.tableNumber && order.tableNumber.toLowerCase().includes(searchTerm));
+                const matchesStatus = !statusFilter || (order.status && order.status.toUpperCase() === statusFilter.toUpperCase());
+                const matchesDate = !dateFilter || (order.orderDate && order.orderDate.startsWith(dateFilter));
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+            displayOrders(filteredOrders);
+        }
+
+        // --- KHỞI TẠO VÀ GÁN SỰ KIỆN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Tải dữ liệu cho dashboard ngay khi trang được tải
+            fetchDashboardStats();
+
+            // Gán sự kiện cho tab "Lịch sử đơn hàng"
+            const historyTab = document.getElementById('history-tab');
+            historyTab.addEventListener('shown.bs.tab', function () {
+                // Chỉ tải dữ liệu lịch sử lần đầu tiên khi nhấp vào tab
+                if (!historyLoaded) {
+                    loadOrderHistory();
+                    historyLoaded = true;
+                }
+            });
+
+            // Gán sự kiện cho các bộ lọc
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+            document.getElementById('dateFilter').addEventListener('change', applyFilters);
+        });
+    </script>
+</body>
+</html>
