@@ -2,76 +2,141 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Gợi ý cho bạn</title>
+    <title>Thông tin Đơn hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; text-align: center; margin: 0; }
-        .suggestion-box { background: white; padding: 40px 50px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 80%; max-width: 700px; transition: all 0.3s ease; }
-        .suggestion-box.hidden { opacity: 0; transform: scale(0.9); }
-        h1 { color: #333; font-size: 2.5em; margin-bottom: 15px; }
-        p { color: #666; font-size: 1.2em; }
-        #suggestion { color: #007bff; font-size: 1.8em; font-weight: bold; margin-top: 20px; min-height: 50px; }
-        #details { color: #888; font-size: 1em; margin-top: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
+        .display-container { display: flex; height: 100vh; }
+        .main-content { flex-grow: 1; padding: 3rem; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        .sidebar { background: white; width: 400px; box-shadow: 5px 0 15px rgba(0,0,0,0.1); padding: 2rem; display: flex; flex-direction: column; }
+        h1 { color: #333; }
+        #suggestion-area h2 { color: #007bff; font-size: 2.5em; font-weight: bold; }
+        #suggestion-area p { color: #666; font-size: 1.2em; }
+        #cart-area { flex-grow: 1; display: flex; flex-direction: column; }
+        #cart-area h2 { color: #333; text-align: left; }
+        #cart-list { list-style: none; padding: 0; overflow-y: auto; flex-grow: 1; }
+        #cart-list li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 1.2em; }
+        #cart-total { text-align: right; font-size: 2em; font-weight: bold; margin-top: auto; border-top: 2px solid #333; padding-top: 1rem; }
+        #qrCodeModal .modal-body { text-align: center; }
     </style>
 </head>
 <body>
-    <div class="suggestion-box" id="suggestionBox">
-        <h1>Dr. Drink Gợi ý</h1>
-        <p>Dựa trên phân tích, chúng tôi nghĩ bạn sẽ thích:</p>
-        <div id="suggestion">... Chờ bạn chụp ảnh ...</div>
-        <div id="details"></div>
+    <div class="display-container">
+        <!-- Phần hiển thị chính (Gợi ý) -->
+        <div class="main-content">
+            <div id="suggestion-area">
+                <h1>Chào mừng đến với Cafe của chúng tôi!</h1>
+                <p id="suggestion-text">... Chờ bạn chụp ảnh để nhận gợi ý ...</p>
+            </div>
+        </div>
+        <!-- Sidebar (Giỏ hàng) -->
+        <div class="sidebar">
+            <div id="cart-area">
+                <h2>Đơn hàng của bạn</h2>
+                <ul id="cart-list">
+                    <li class="text-muted">Chưa có món nào.</li>
+                </ul>
+                <div id="cart-total">
+                    <span>Tổng cộng:</span>
+                    <span id="total-amount">0₫</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Tải các thư viện cần thiết cho WebSocket client -->
+    <!-- THÊM MODAL MỚI CHO MÃ QR -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quét mã VietQR để thanh toán</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="qrCodeContainer"></div>
+                    <p class="mt-3 fs-4">Tổng cộng: <strong id="qrTotalAmount" class="text-success"></strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tải các thư viện cần thiết -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-
     <script>
-        const suggestionEl = document.getElementById('suggestion');
-        const detailsEl = document.getElementById('details');
-        const suggestionBoxEl = document.getElementById('suggestionBox');
-        let stompClient = null;
+        const suggestionTextEl = document.getElementById('suggestion-text');
+        const cartListEl = document.getElementById('cart-list');
+        const totalAmountEl = document.getElementById('total-amount');
+        let qrCodeModal = null; // Thêm biến cho modal QR
+        
+        function formatCurrency(amount) {
+            return (amount || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+        }
 
         function connect() {
-            // Tạo kết nối SockJS đến endpoint đã đăng ký trong WebSocketConfig
             const socket = new SockJS('/ws-suggest');
-            stompClient = Stomp.over(socket);
+            const stompClient = Stomp.over(socket);
 
             stompClient.connect({}, function (frame) {
-                console.log('Đã kết nối: ' + frame);
-                
-                // Đăng ký (subscribe) vào topic "/topic/suggestions"
-                // Khi có tin nhắn mới trên topic này, hàm callback sẽ được gọi
-                stompClient.subscribe('/topic/suggestions', function (message) {
-                    showSuggestion(JSON.parse(message.body));
+                console.log('Đã kết nối!');
+                // Đăng ký vào topic chung
+                stompClient.subscribe('/topic/customer-display', function (message) {
+                    const wsMessage = JSON.parse(message.body);
+                    
+                    // Xử lý tin nhắn dựa trên loại
+                    if (wsMessage.type === 'SUGGESTION') {
+                        handleSuggestion(wsMessage.payload);
+                    } else if (wsMessage.type === 'CART_UPDATE') {
+                        handleCartUpdate(wsMessage.payload);
+                    } else if (wsMessage.type === 'SHOW_QR_CODE') { // <-- XỬ LÝ TIN NHẮN MỚI
+                        handleShowQrCode(wsMessage.payload);
+                    }
                 });
             }, function(error) {
-                // Xử lý khi mất kết nối, thử kết nối lại sau 5 giây
-                console.error('Mất kết nối WebSocket. Đang thử kết nối lại...');
+                console.error('Mất kết nối, đang thử lại...');
                 setTimeout(connect, 5000);
             });
         }
 
-        function showSuggestion(data) {
-            console.log("Đã nhận gợi ý: ", data);
-            
-            // Thêm hiệu ứng
-            suggestionBoxEl.classList.add('hidden');
-            
-            setTimeout(() => {
-                // Cập nhật nội dung HTML
-                suggestionEl.textContent = data.suggestion;
-                detailsEl.textContent = `(Tuổi ước tính: ${data.estimatedAge}, Tâm trạng: ${data.detectedEmotion})`;
-                
-                // Hiển thị lại với hiệu ứng
-                suggestionBoxEl.classList.remove('hidden');
-            }, 300); // Đợi 0.3 giây để hiệu ứng ẩn hoàn tất
+        function handleSuggestion(data) {
+            suggestionTextEl.innerHTML = `Dựa trên phân tích, chúng tôi nghĩ bạn sẽ thích: <br><strong style="color: #007bff; font-size: 1.5em;">${data.suggestion}</strong>`;
         }
 
-        // Bắt đầu kết nối khi trang được tải
-        document.addEventListener('DOMContentLoaded', connect);
+        function handleCartUpdate(data) {
+            cartListEl.innerHTML = '';
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${item.name}</span><strong>${formatCurrency(item.price)}</strong>`;
+                    cartListEl.appendChild(li);
+                });
+            } else {
+                cartListEl.innerHTML = '<li class="text-muted">Chưa có món nào.</li>';
+            }
+            totalAmountEl.textContent = formatCurrency(data.totalAmount);
+        }
+        
+        // HÀM MỚI ĐỂ HIỂN THỊ QR
+        function handleShowQrCode(data) {
+            const qrContainer = document.getElementById('qrCodeContainer');
+            qrContainer.innerHTML = ''; // Xóa QR cũ
+
+            const img = document.createElement('img');
+            img.src = data.qrImageUrl; // Sử dụng URL từ backend
+            img.style.width = '256px';
+            img.style.height = '256px';
+            qrContainer.appendChild(img);
+
+            document.getElementById('qrTotalAmount').textContent = formatCurrency(data.totalAmount);
+            qrCodeModal.show();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Khởi tạo modal QR
+            qrCodeModal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+            connect();
+        });
     </script>
 </body>
-</html>```
-
----
-
+</html>

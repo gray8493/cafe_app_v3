@@ -9,7 +9,7 @@ import requests
 import time
 import json
 
-SERVER_URL = "http://localhost:8080/api/suggestions/analyze-face"
+SERVER_URL = "http://localhost:8080/api/customer-display/analyze-face"
 CAMERA_INDEX = 0
 
 def main():

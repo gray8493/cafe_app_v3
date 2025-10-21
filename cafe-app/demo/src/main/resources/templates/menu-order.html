@@ -6,8 +6,8 @@
     <title>Menu Đặt hàng</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <!-- Thư viện tạo mã QR, có thể đặt ở head vì không phụ thuộc vào DOM -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         body { background-color: #f8f9fa; }
         .main-container { padding: 2rem; }
@@ -32,7 +32,14 @@
         <!-- Cột Menu -->
         <div class="col-lg-8">
             <h1 class="mb-4">Menu Đặt hàng</h1>
-            <div class="mb-3"><input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm món ăn..."></div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div style="flex-grow: 1; margin-right: 1rem;">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm món ăn...">
+                </div>
+                <button class="btn btn-outline-primary" onclick="openCustomerDisplay()">
+                    <i class="bi bi-display"></i> Mở màn hình KH
+                </button>
+            </div>
             <ul class="nav nav-pills mb-3" id="category-tabs"></ul>
             <div class="tab-content" id="menu-items-container"></div>
         </div>
@@ -42,323 +49,68 @@
             <div class="card order-summary-card">
                 <div class="card-body p-4">
                     <h4 class="card-title mb-4">Đơn hàng hiện tại</h4>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Loại đơn hàng:</label>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="orderType" id="eatInRadio" value="EAT_IN" checked><label class="form-check-label" for="eatInRadio">Dùng tại chỗ</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="orderType" id="takeAwayRadio" value="TAKE_AWAY"><label class="form-check-label" for="takeAwayRadio">Mang đi</label></div>
-                    </div>
+                    <div class="mb-3"><label class="form-label fw-bold">Loại đơn hàng:</label><div class="form-check"><input class="form-check-input" type="radio" name="orderType" id="eatInRadio" value="EAT_IN" checked><label class="form-check-label" for="eatInRadio">Dùng tại chỗ</label></div><div class="form-check"><input class="form-check-input" type="radio" name="orderType" id="takeAwayRadio" value="TAKE_AWAY"><label class="form-check-label" for="takeAwayRadio">Mang đi</label></div></div>
                     <div class="mb-3"><label for="tableNumberInput" class="form-label fw-bold">Số bàn:</label><input type="text" class="form-control" id="tableNumberInput" placeholder="Bỏ trống nếu mang đi"></div>
                     <div class="mb-3"><label for="customerIdInput" class="form-label fw-bold">ID Khách hàng (nếu có):</label><input type="number" class="form-control" id="customerIdInput" placeholder="Để trống cho khách lẻ"></div>
                     <hr>
-                    
                     <ul class="list-group list-group-flush mb-3" id="cart-items-list"><li class="list-group-item text-muted border-0 px-0">Chưa có món nào trong đơn hàng.</li></ul>
-                    
-                    <div class="d-flex justify-content-between fw-bold fs-5 pt-3 border-top">
-                        <span>Tổng cộng:</span>
-                        <span id="cart-total-amount">0₫</span>
-                    </div>
-                    
-                    <!-- PHẦN THANH TOÁN -->
-                    <div class="mt-4 border-top pt-3 payment-section">
-                        <label class="form-label fw-bold">Phương thức thanh toán:</label>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" id="cashRadio" value="CASH" checked onchange="togglePaymentDetails()"><label class="form-check-label" for="cashRadio">Tiền mặt</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" id="qrRadio" value="QR" onchange="togglePaymentDetails()"><label class="form-check-label" for="qrRadio">Quét mã QR</label></div>
-                        <div id="cashPaymentDetails" class="mt-3">
-                            <div class="mb-2"><label for="cashReceivedInput" class="form-label">Tiền khách đưa:</label><input type="number" class="form-control" id="cashReceivedInput" placeholder="Nhập số tiền" oninput="calculateChange()"></div>
-                            <div class="d-flex justify-content-between"><label>Tiền thối lại:</label><span id="changeAmount" class="fw-bold">0₫</span></div>
-                        </div>
-                    </div>
-
-                    <div class="d-grid mt-4">
-                        <button class="btn btn-success btn-lg" onclick="handlePayment()">Thanh toán & Hoàn tất</button>
-                    </div>
+                    <div class="d-flex justify-content-between fw-bold fs-5 pt-3 border-top"><span>Tổng cộng:</span><span id="cart-total-amount">0₫</span></div>
+                    <div class="mt-4 border-top pt-3 payment-section"><label class="form-label fw-bold">Phương thức thanh toán:</label><div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" id="cashRadio" value="CASH" checked onchange="togglePaymentDetails()"><label class="form-check-label" for="cashRadio">Tiền mặt</label></div><div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" id="qrRadio" value="QR" onchange="togglePaymentDetails()"><label class="form-check-label" for="qrRadio">Quét mã QR</label></div><div id="cashPaymentDetails" class="mt-3"><div class="mb-2"><label for="cashReceivedInput" class="form-label">Tiền khách đưa:</label><input type="number" class="form-control" id="cashReceivedInput" placeholder="Nhập số tiền" oninput="calculateChange()"></div><div class="d-flex justify-content-between"><label>Tiền thối lại:</label><span id="changeAmount" class="fw-bold">0₫</span></div></div></div>
+                    <div class="d-grid mt-4"><button class="btn btn-success btn-lg" onclick="handlePayment()">Thanh toán & Hoàn tất</button></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ======================================================= -->
-<!-- ==      KHÔI PHỤC LẠI NỘI DUNG MODAL BỊ THIẾU       == -->
-<!-- ======================================================= -->
 <!-- Modal Tùy chỉnh Món -->
-<div class="modal fade" id="itemCustomizationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">Tùy chỉnh món</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Kích cỡ:</label>
-                    <div id="modal-sizes"></div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Topping:</label>
-                    <div id="modal-toppings"></div>
-                </div>
-                <div class="mb-3">
-                    <label for="modal-notes" class="form-label fw-bold">Ghi chú:</label>
-                    <textarea class="form-control" id="modal-notes" rows="2" placeholder="Ví dụ: ít đường, không đá..."></textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="modal-quantity" class="form-label fw-bold">Số lượng:</label>
-                    <input type="number" class="form-control" id="modal-quantity" value="1" min="1">
-                </div>
-            </div>
-            <div class="modal-footer d-flex justify-content-between align-items-center">
-                <span class="fw-bold fs-5" id="modal-item-price">0₫</span>
-                <button type="button" class="btn btn-primary" onclick="addItemToCart()">Thêm vào giỏ</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="itemCustomizationModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="modalTitle">Tùy chỉnh món</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label fw-bold">Kích cỡ:</label><div id="modal-sizes"></div></div><div class="mb-3"><label class="form-label fw-bold">Topping:</label><div id="modal-toppings"></div></div><div class="mb-3"><label for="modal-notes" class="form-label fw-bold">Ghi chú:</label><textarea class="form-control" id="modal-notes" rows="2" placeholder="Ví dụ: ít đường, không đá..."></textarea></div><div class="mb-3"><label for="modal-quantity" class="form-label fw-bold">Số lượng:</label><input type="number" class="form-control" id="modal-quantity" value="1" min="1"></div></div><div class="modal-footer d-flex justify-content-between align-items-center"><span class="fw-bold fs-5" id="modal-item-price">0₫</span><button type="button" class="btn btn-primary" onclick="addItemToCart()">Thêm vào giỏ</button></div></div></div></div>
 
 <!-- Modal Hiển thị mã QR -->
-<div class="modal fade" id="qrCodeModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Quét mã VietQR để thanh toán</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><div id="qrCodeContainer"></div><p class="text-center mt-2">Tổng số tiền: <strong id="qrTotalAmount"></strong></p></div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="qrCodeModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Quét mã VietQR để thanh toán</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div id="qrCodeContainer"></div><p class="text-center mt-2">Tổng số tiền: <strong id="qrTotalAmount"></strong></p></div></div></div></div>
 
+<!-- Tải Bootstrap JS TRƯỚC script tùy chỉnh của bạn -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Script tùy chỉnh -->
 <script th:inline="javascript">
-   
     // --- KHAI BÁO BIẾN TOÀN CỤC ---
     const menuApiUrl = '/api/admin/menu/grouped';
     const orderApiUrl = '/api/orders';
+    const customerDisplayApiUrl = '/api/customer-display/update-cart';
+    const generateQrApiUrl = '/api/customer-display/generate-qr';
     
     let menuData = {}, shoppingCart = [], currentItemForModal = null, itemCustomizationModal = null, qrCodeModal = null;
     let currentTotal = 0;
 
     // --- CÁC HÀM TIỆN ÍCH ---
     function formatCurrency(amount) { return (amount || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }); }
-
-    // --- LOGIC HIỂN THỊ MENU VÀ TÌM KIẾM ---
-    async function fetchMenuData() {
-        try {
-            const response = await fetch(menuApiUrl);
-            if (!response.ok) throw new Error('Không thể tải menu.');
-            menuData = await response.json();
-            
-            renderMenuTabs();
-            const firstCategory = Object.keys(menuData).find(cat => cat.toLowerCase() !== 'topping');
-            if (firstCategory) {
-                renderMenuItems(firstCategory);
-                document.querySelector(`#category-tabs .nav-link[data-category="${firstCategory}"]`).classList.add('active');
-            }
-        } catch (error) {
-            console.error(error);
-            document.getElementById('menu-items-container').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-        }
-    }
-
-    function renderMenuTabs() {
-        const tabsContainer = document.getElementById('category-tabs');
-        tabsContainer.innerHTML = '';
-        Object.keys(menuData).forEach(category => {
-            if (category.toLowerCase() === 'topping') return;
-            tabsContainer.innerHTML += `
-                <li class="nav-item">
-                    <a class="nav-link" data-category="${category}" onclick="switchCategory(this)">${category}</a>
-                </li>`;
-        });
-    }
-
-    function switchCategory(element) {
-        document.querySelectorAll('#category-tabs .nav-link').forEach(link => link.classList.remove('active'));
-        element.classList.add('active');
-        renderMenuItems(element.dataset.category);
-    }
-
-    function renderMenuItems(category) {
-        const itemsContainer = document.getElementById('menu-items-container');
-        itemsContainer.innerHTML = '<div class="row g-3"></div>';
-        const rowContainer = itemsContainer.querySelector('.row');
-        const items = menuData[category] || [];
-        items.forEach(item => {
-            rowContainer.innerHTML += `
-                <div class="col-md-4">
-                    <div class="card h-100 menu-item-card" onclick="openCustomizationModal(${item.id})">
-                        <div class="card-body text-center d-flex flex-column justify-content-center">
-                            <h5 class="card-title">${item.name}</h5>
-                            <p class="card-text text-success fw-bold m-0">${formatCurrency(item.price)}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function searchMenuItems() {
-        const searchText = document.getElementById('searchInput').value.toLowerCase();
-        document.querySelectorAll('.menu-item-card').forEach(card => {
-            const itemName = card.querySelector('.card-title').textContent.toLowerCase();
-            if (itemName.includes(searchText)) {
-                card.parentElement.style.display = 'block';
-            } else {
-                card.parentElement.style.display = 'none';
-            }
-        });
-    }
+    function openCustomerDisplay() { window.open('/suggestion_display.html', '_blank'); }
     
+    // --- LOGIC HIỂN THỊ MENU & TÌM KIẾM ---
+    async function fetchMenuData(){ try{const response=await fetch(menuApiUrl);if(!response.ok)throw new Error('Không thể tải menu.');menuData=await response.json();renderMenuTabs();const firstCategory=Object.keys(menuData).find(cat=>cat.toLowerCase()!=='topping');if(firstCategory){renderMenuItems(firstCategory);document.querySelector(`#category-tabs .nav-link[data-category="${firstCategory}"]`).classList.add('active')}}catch(error){console.error(error);document.getElementById('menu-items-container').innerHTML=`<div class="alert alert-danger">${error.message}</div>`}}
+    function renderMenuTabs(){const tabsContainer=document.getElementById('category-tabs');tabsContainer.innerHTML='';Object.keys(menuData).forEach(category=>{if(category.toLowerCase()==='topping')return;tabsContainer.innerHTML+=`<li class="nav-item"><a class="nav-link" data-category="${category}" onclick="switchCategory(this)">${category}</a></li>`})}
+    function switchCategory(element){document.querySelectorAll('#category-tabs .nav-link').forEach(link=>link.classList.remove('active'));element.classList.add('active');renderMenuItems(element.dataset.category)}
+    function renderMenuItems(category){const itemsContainer=document.getElementById('menu-items-container');itemsContainer.innerHTML='<div class="row g-3"></div>';const rowContainer=itemsContainer.querySelector('.row');const items=menuData[category]||[];items.forEach(item=>{rowContainer.innerHTML+=`<div class="col-md-4"><div class="card h-100 menu-item-card" onclick="openCustomizationModal(${item.id})"><div class="card-body text-center d-flex flex-column justify-content-center"><h5 class="card-title">${item.name}</h5><p class="card-text text-success fw-bold m-0">${formatCurrency(item.price)}</p></div></div></div>`})}
+    function searchMenuItems(){const searchText=document.getElementById('searchInput').value.toLowerCase();document.querySelectorAll('.menu-item-card').forEach(card=>{const itemName=card.querySelector('.card-title').textContent.toLowerCase();if(itemName.includes(searchText)){card.parentElement.style.display='block'}else{card.parentElement.style.display='none'}})}
+
     // --- LOGIC MODAL TÙY CHỈNH MÓN ---
-    function openCustomizationModal(itemId) {
-        for (const category in menuData) {
-            const item = menuData[category].find(i => i.id === itemId);
-            if (item) {
-                currentItemForModal = item;
-                break;
-            }
-        }
-        if (!currentItemForModal) return;
-
-        document.getElementById('modalTitle').textContent = currentItemForModal.name;
-        document.getElementById('modal-quantity').value = 1;
-        document.getElementById('modal-notes').value = '';
-
-        const sizesContainer = document.getElementById('modal-sizes');
-        sizesContainer.innerHTML = '';
-        const sizes = [ { key: 'S', price: currentItemForModal.priceS }, { key: 'M', price: currentItemForModal.price }, { key: 'L', price: currentItemForModal.priceL } ];
-        sizes.forEach(size => {
-            if (size.price != null) {
-                const checked = size.key === 'M' ? 'checked' : '';
-                sizesContainer.innerHTML += `<div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="size" id="size${size.key}" value="${size.key}" ${checked} onchange="updateModalPrice()"><label class="form-check-label" for="size${size.key}">${size.key} (${formatCurrency(size.price)})</label></div>`;
-            }
-        });
-        
-        const toppingsContainer = document.getElementById('modal-toppings');
-        toppingsContainer.innerHTML = '';
-        const toppings = menuData['Topping'] || [];
-        toppings.forEach(topping => {
-            toppingsContainer.innerHTML += `<div class="form-check"><input class="form-check-input" type="checkbox" value="${topping.id}" id="topping${topping.id}" onchange="updateModalPrice()"><label class="form-check-label" for="topping${topping.id}">${topping.name} (+${formatCurrency(topping.price)})</label></div>`;
-        });
-
-        document.getElementById('modal-quantity').oninput = updateModalPrice;
-        updateModalPrice();
-        itemCustomizationModal.show();
-    }
+    function openCustomizationModal(itemId){for(const category in menuData){const item=menuData[category].find(i=>i.id===itemId);if(item){currentItemForModal=item;break}}if(!currentItemForModal)return;document.getElementById('modalTitle').textContent=currentItemForModal.name;document.getElementById('modal-quantity').value=1;document.getElementById('modal-notes').value='';const sizesContainer=document.getElementById('modal-sizes');sizesContainer.innerHTML='';const sizes=[{key:'S',price:currentItemForModal.priceS},{key:'M',price:currentItemForModal.price},{key:'L',price:currentItemForModal.priceL}];sizes.forEach(size=>{if(size.price!=null){const checked=size.key==='M'?'checked':'';sizesContainer.innerHTML+=`<div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="size" id="size${size.key}" value="${size.key}" ${checked} onchange="updateModalPrice()"><label class="form-check-label" for="size${size.key}">${size.key} (${formatCurrency(size.price)})</label></div>`}});const toppingsContainer=document.getElementById('modal-toppings');toppingsContainer.innerHTML='';const toppings=menuData['Topping']||[];toppings.forEach(topping=>{toppingsContainer.innerHTML+=`<div class="form-check"><input class="form-check-input" type="checkbox" value="${topping.id}" id="topping${topping.id}" onchange="updateModalPrice()"><label class="form-check-label" for="topping${topping.id}">${topping.name} (+${formatCurrency(topping.price)})</label></div>`});document.getElementById('modal-quantity').oninput=updateModalPrice;updateModalPrice();itemCustomizationModal.show()}
+    function updateModalPrice(){if(!currentItemForModal)return;let total=0;const selectedSize=document.querySelector('input[name="size"]:checked')?.value||'M';switch(selectedSize.toUpperCase()){case'S':total+=currentItemForModal.priceS;break;case'L':total+=currentItemForModal.priceL;break;default:total+=currentItemForModal.price}const toppings=menuData['Topping']||[];document.querySelectorAll('#modal-toppings input:checked').forEach(checkbox=>{const topping=toppings.find(t=>t.id===parseInt(checkbox.value));if(topping)total+=topping.price});const quantity=parseInt(document.getElementById('modal-quantity').value)||1;total*=quantity;document.getElementById('modal-item-price').textContent=formatCurrency(total)}
     
-    function updateModalPrice() {
-        if (!currentItemForModal) return;
-        let total = 0;
-        const selectedSize = document.querySelector('input[name="size"]:checked')?.value || 'M';
-        switch (selectedSize.toUpperCase()) {
-            case 'S': total += currentItemForModal.priceS; break;
-            case 'L': total += currentItemForModal.priceL; break;
-            default: total += currentItemForModal.price;
-        }
-        const toppings = menuData['Topping'] || [];
-        document.querySelectorAll('#modal-toppings input:checked').forEach(checkbox => {
-            const topping = toppings.find(t => t.id === parseInt(checkbox.value));
-            if (topping) total += topping.price;
-        });
-        const quantity = parseInt(document.getElementById('modal-quantity').value) || 1;
-        total *= quantity;
-        document.getElementById('modal-item-price').textContent = formatCurrency(total);
-    }
-
     // --- LOGIC GIỎ HÀNG ---
-    function addItemToCart() {
-        const quantity = parseInt(document.getElementById('modal-quantity').value);
-        const selectedSize = document.querySelector('input[name="size"]:checked').value;
-        const notes = document.getElementById('modal-notes').value;
-        const selectedToppingIds = Array.from(document.querySelectorAll('#modal-toppings input:checked')).map(cb => parseInt(cb.value));
-        const priceText = document.getElementById('modal-item-price').textContent;
-        const finalPrice = parseFloat(priceText.replace(/[^0-9,-]+/g,"").replace('.','').replace(',','.'));
-        const cartItem = { cartId: Date.now(), menuItemId: currentItemForModal.id, name: currentItemForModal.name, quantity, selectedSize, notes, toppingIds: selectedToppingIds, toppings: (menuData['Topping'] || []).filter(t => selectedToppingIds.includes(t.id)), finalPrice };
-        shoppingCart.push(cartItem);
-        renderShoppingCart();
-        itemCustomizationModal.hide();
-    }
-    function renderShoppingCart() {
-        const cartList = document.getElementById('cart-items-list');
-        cartList.innerHTML = '';
-        let totalAmount = 0;
-        if (shoppingCart.length === 0) {
-            cartList.innerHTML = '<li class="list-group-item text-muted border-0 px-0">Chưa có món nào trong đơn hàng.</li>';
-        } else {
-            shoppingCart.forEach(item => {
-                totalAmount += item.finalPrice;
-                let toppingsText = item.toppings.map(t => t.name).join(', ');
-                cartList.innerHTML += `<li class="list-group-item border-0 px-0"><div class="item-details"><strong>${item.quantity}x ${item.name} (${item.selectedSize})</strong><small>${toppingsText ? 'Topping: ' + toppingsText : ''}</small><small>${item.notes ? 'Ghi chú: ' + item.notes : ''}</small></div><span class="fw-bold me-3">${formatCurrency(item.finalPrice)}</span><button class="btn btn-sm btn-outline-danger border-0" onclick="removeItemFromCart(${item.cartId})"><i class="bi bi-x-lg"></i></button></li>`;
-            });
-        }
-        document.getElementById('cart-total-amount').textContent = formatCurrency(totalAmount);
-        currentTotal = totalAmount;
-        calculateChange();
-    }
-    function removeItemFromCart(cartId) { shoppingCart = shoppingCart.filter(item => item.cartId !== cartId); renderShoppingCart(); }
+    function addItemToCart(){const quantity=parseInt(document.getElementById('modal-quantity').value);const selectedSize=document.querySelector('input[name="size"]:checked').value;const notes=document.getElementById('modal-notes').value;const selectedToppingIds=Array.from(document.querySelectorAll('#modal-toppings input:checked')).map(cb=>parseInt(cb.value));const priceText=document.getElementById('modal-item-price').textContent;const finalPrice=parseFloat(priceText.replace(/[^0-9,-]+/g,"").replace('.','').replace(',','.'));const cartItem={cartId:Date.now(),menuItemId:currentItemForModal.id,name:currentItemForModal.name,quantity,selectedSize,notes,toppingIds:selectedToppingIds,toppings:(menuData['Topping']||[]).filter(t=>selectedToppingIds.includes(t.id)),finalPrice};shoppingCart.push(cartItem);renderShoppingCart();itemCustomizationModal.hide()}
+    function removeItemFromCart(cartId){shoppingCart=shoppingCart.filter(item=>item.cartId!==cartId);renderShoppingCart()}
+    function renderShoppingCart(){const cartList=document.getElementById('cart-items-list');cartList.innerHTML='';let totalAmount=0;if(shoppingCart.length===0){cartList.innerHTML='<li class="list-group-item text-muted border-0 px-0">Chưa có món nào trong đơn hàng.</li>'}else{shoppingCart.forEach(item=>{totalAmount+=item.finalPrice;let toppingsText=item.toppings.map(t=>t.name).join(', ');cartList.innerHTML+=`<li class="list-group-item border-0 px-0"><div class="item-details"><strong>${item.quantity}x ${item.name} (${item.selectedSize})</strong><small>${toppingsText?'Topping: '+toppingsText:''}</small><small>${item.notes?'Ghi chú: '+item.notes:''}</small></div><span class="fw-bold me-3">${formatCurrency(item.finalPrice)}</span><button class="btn btn-sm btn-outline-danger border-0" onclick="removeItemFromCart(${item.cartId})"><i class="bi bi-x-lg"></i></button></li>`})}document.getElementById('cart-total-amount').textContent=formatCurrency(totalAmount);currentTotal=totalAmount;calculateChange();syncCartWithCustomerDisplay()}
+    async function syncCartWithCustomerDisplay(){const cartItemsForDisplay=shoppingCart.map(item=>({name:`${item.quantity}x ${item.name} (${item.selectedSize})${item.toppings.length>0?' + Topping':''}`,quantity:item.quantity,price:item.finalPrice}));const cartUpdate={items:cartItemsForDisplay,totalAmount:currentTotal};try{await fetch(customerDisplayApiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cartUpdate)})}catch(error){console.error("Không thể đồng bộ giỏ hàng:",error)}}
 
     // --- LOGIC THANH TOÁN ---
-    function togglePaymentDetails() {
-        document.getElementById('cashPaymentDetails').style.display = document.getElementById('cashRadio').checked ? 'block' : 'none';
-        if (!document.getElementById('cashRadio').checked) { document.getElementById('cashReceivedInput').value = ''; calculateChange(); }
-    }
-    function calculateChange() {
-        if (!document.getElementById('cashRadio').checked) return;
-        const cashReceived = parseFloat(document.getElementById('cashReceivedInput').value) || 0;
-        const change = cashReceived - currentTotal;
-        document.getElementById('changeAmount').textContent = formatCurrency(change >= 0 ? change : 0);
-    }
-    function generateAndShowQR() {
-        const bankId = "970415"; const accountNumber = "123456789"; const description = `HD${Date.now()}`;
-        const qrContainer = document.getElementById('qrCodeContainer');
-        qrContainer.innerHTML = '';
-        const qrImageUrl = `https://img.vietqr.io/image/${bankId}-${accountNumber}-print.png?amount=${Math.round(currentTotal)}&addInfo=${encodeURIComponent(description)}`;
-        const img = document.createElement('img');
-        img.src = qrImageUrl; img.style.width = '256px'; img.style.height = '256px';
-        qrContainer.appendChild(img);
-        document.getElementById('qrTotalAmount').textContent = formatCurrency(currentTotal);
-        qrCodeModal.show();
-    }
-    async function handlePayment() {
-        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-        if (shoppingCart.length === 0) { alert('Vui lòng thêm món vào đơn hàng.'); return; }
-        if (paymentMethod === 'QR') { generateAndShowQR(); return; }
-        if (paymentMethod === 'CASH') {
-            const cashReceived = parseFloat(document.getElementById('cashReceivedInput').value) || 0;
-            if (cashReceived < currentTotal) { alert('Số tiền khách đưa không đủ.'); return; }
-            await confirmAndSaveOrder(paymentMethod, cashReceived);
-        }
-    }
-    async function confirmAndSaveOrder(paymentMethod, cashReceived = null) {
-        const customerId = document.getElementById('customerIdInput').value ? parseInt(document.getElementById('customerIdInput').value) : null;
-        const tableNumber = document.getElementById('tableNumberInput').value.trim();
-        const orderType = document.querySelector('input[name="orderType"]:checked').value;
-        if (orderType === 'EAT_IN' && !tableNumber) { alert('Vui lòng nhập số bàn.'); return; }
-        const orderItemsDto = shoppingCart.map(item => ({ menuItemId: item.menuItemId, quantity: item.quantity, selectedSize: item.selectedSize, notes: item.notes, toppingIds: item.toppingIds }));
-        const orderRequestDto = { customerId, orderType, tableNumber, paymentMethod, cashReceived, items: orderItemsDto };
-        try {
-            const response = await fetch(orderApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderRequestDto) });
-            if (!response.ok) { const errorData = await response.json().catch(() => ({ message: 'Lỗi không xác định' })); throw new Error(errorData.message || `Lỗi server: ${response.status}`); }
-            const newOrder = await response.json();
-            alert(`Tạo đơn hàng thành công! Mã đơn hàng: ${newOrder.id}`);
-            shoppingCart = [];
-            document.getElementById('customerIdInput').value = '';
-            document.getElementById('tableNumberInput').value = '';
-            document.getElementById('cashReceivedInput').value = '';
-            document.getElementById('eatInRadio').checked = true;
-            renderShoppingCart();
-        } catch (error) {
-            console.error('Lỗi khi xác nhận đơn hàng:', error);
-            alert('Lỗi khi xác nhận đơn hàng: ' + error.message);
-        }
-    }
+    function togglePaymentDetails(){document.getElementById('cashPaymentDetails').style.display=document.getElementById('cashRadio').checked?'block':'none';if(!document.getElementById('cashRadio').checked){document.getElementById('cashReceivedInput').value='';calculateChange()}}
+    function calculateChange(){if(!document.getElementById('cashRadio').checked)return;const cashReceived=parseFloat(document.getElementById('cashReceivedInput').value)||0;const change=cashReceived-currentTotal;document.getElementById('changeAmount').textContent=formatCurrency(change>=0?change:0)}
+    async function handlePayment(){const paymentMethod=document.querySelector('input[name="paymentMethod"]:checked').value;if(shoppingCart.length===0){alert('Vui lòng thêm món vào đơn hàng.');return}if(paymentMethod==='QR'){try{await fetch(generateQrApiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({totalAmount:currentTotal})});alert('Đã gửi yêu cầu hiển thị mã QR đến màn hình của khách hàng.')}catch(error){alert('Lỗi khi tạo mã QR.');console.error("Lỗi khi gọi API tạo QR:",error)}return}if(paymentMethod==='CASH'){const cashReceived=parseFloat(document.getElementById('cashReceivedInput').value)||0;if(cashReceived<currentTotal){alert('Số tiền khách đưa không đủ.');return}await confirmAndSaveOrder(paymentMethod,cashReceived)}}
+    async function confirmAndSaveOrder(paymentMethod,cashReceived=null){const customerId=document.getElementById('customerIdInput').value?parseInt(document.getElementById('customerIdInput').value):null;const tableNumber=document.getElementById('tableNumberInput').value.trim();const orderType=document.querySelector('input[name="orderType"]:checked').value;if(orderType==='EAT_IN'&&!tableNumber){alert('Vui lòng nhập số bàn.');return}const orderItemsDto=shoppingCart.map(item=>({menuItemId:item.menuItemId,quantity:item.quantity,selectedSize:item.selectedSize,notes:item.notes,toppingIds:item.toppingIds}));const orderRequestDto={customerId,orderType,tableNumber,paymentMethod,cashReceived,items:orderItemsDto};try{const response=await fetch(orderApiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderRequestDto)});if(!response.ok){const errorData=await response.json().catch(()=>({message:'Lỗi không xác định'}));throw new Error(errorData.message||`Lỗi server: ${response.status}`)}const newOrder=await response.json();alert(`Tạo đơn hàng thành công! Mã đơn hàng: ${newOrder.id}`);shoppingCart=[];document.getElementById('customerIdInput').value='';document.getElementById('tableNumberInput').value='';document.getElementById('cashReceivedInput').value='';document.getElementById('eatInRadio').checked=true;renderShoppingCart()}catch(error){console.error('Lỗi khi xác nhận đơn hàng:',error);alert('Lỗi khi xác nhận đơn hàng: '+error.message)}}
 
     // --- KHỞI TẠO ---
-    document.addEventListener('DOMContentLoaded', () => {
-        itemCustomizationModal = new bootstrap.Modal(document.getElementById('itemCustomizationModal'));
-        qrCodeModal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
-        document.getElementById('searchInput').addEventListener('input', searchMenuItems);
-        fetchMenuData();
-        togglePaymentDetails();
-    });
+    document.addEventListener('DOMContentLoaded',()=>{itemCustomizationModal=new bootstrap.Modal(document.getElementById('itemCustomizationModal'));qrCodeModal=new bootstrap.Modal(document.getElementById('qrCodeModal'));document.getElementById('searchInput').addEventListener('input',searchMenuItems);fetchMenuData();togglePaymentDetails()});
 </script>
 </body>
 </html>

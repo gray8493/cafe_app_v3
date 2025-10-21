@@ -27,7 +27,7 @@ public class GoogleAiService {
         
 
 // DÒNG ĐÃ SỬA, SỬ DỤNG API PHIÊN BẢN v1
-String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=" + apiKey;
+String apiUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key=" + apiKey;
         // Tạo headers cho request
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

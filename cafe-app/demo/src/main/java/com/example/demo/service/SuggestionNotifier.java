@@ -1,27 +1,61 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.CartUpdateDto;
+import com.example.demo.dto.QrCodeDto;
 import com.example.demo.dto.SuggestionResponseDto;
+import com.example.demo.dto.WebSocketMessage;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component; // Thay @Service bằng @Component cho phù hợp hơn
 
-@Service
+/**
+ * Lớp này chịu trách nhiệm đẩy thông báo đến các client đã kết nối
+ * qua WebSocket. Nó hoạt động như một cầu nối giữa logic nghiệp vụ
+ * và các client thời gian thực.
+ */
+@Component // @Component là một lựa chọn tốt hơn @Service cho các lớp tiện ích chung
 public class SuggestionNotifier {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate template;
     
-    // Đường dẫn WebSocket endpoint mà client sẽ subscribe
-    private static final String WEBSOCKET_TOPIC = "/topic/suggestions";
+    // Sử dụng một topic chung cho tất cả các thông báo đến màn hình khách hàng
+    private static final String CUSTOMER_DISPLAY_TOPIC = "/topic/customer-display";
 
-    public SuggestionNotifier(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public SuggestionNotifier(SimpMessagingTemplate template) {
+        this.template = template;
     }
 
     /**
-     * Gửi thông báo gợi ý đến tất cả các client đang kết nối
-     * @param suggestionResponseDto Đối tượng chứa thông tin gợi ý
+     * Gửi thông báo gợi ý đồ uống đến màn hình khách hàng.
+     * Tin nhắn sẽ có type là "SUGGESTION".
+     * @param suggestion DTO chứa thông tin gợi ý (tuổi, cảm xúc, tên món).
      */
-    public void notifySuggestion(SuggestionResponseDto suggestionResponseDto) {
-        // Gửi message đến tất cả các client đang subscribe vào topic /topic/suggestions
-        messagingTemplate.convertAndSend(WEBSOCKET_TOPIC, suggestionResponseDto);
+    public void notifySuggestion(SuggestionResponseDto suggestion) {
+        // Bọc dữ liệu trong một đối tượng WebSocketMessage chung
+        WebSocketMessage<SuggestionResponseDto> message = new WebSocketMessage<>("SUGGESTION", suggestion);
+        
+        // Gửi tin nhắn đến topic
+        template.convertAndSend(CUSTOMER_DISPLAY_TOPIC, message);
+        
+        System.out.println("Đã đẩy gợi ý qua WebSocket: " + suggestion.getSuggestion());
+    }
+    
+    /**
+     * Gửi thông báo cập nhật giỏ hàng đến màn hình khách hàng.
+     * Tin nhắn sẽ có type là "CART_UPDATE".
+     * @param cartUpdate DTO chứa danh sách các món trong giỏ và tổng tiền.
+     */
+    public void notifyCartUpdate(CartUpdateDto cartUpdate) {
+        // Bọc dữ liệu trong một đối tượng WebSocketMessage chung
+        WebSocketMessage<CartUpdateDto> message = new WebSocketMessage<>("CART_UPDATE", cartUpdate);
+        
+        // Gửi tin nhắn đến topic
+        template.convertAndSend(CUSTOMER_DISPLAY_TOPIC, message);
+
+        System.out.println("Đã đẩy cập nhật giỏ hàng qua WebSocket. Tổng tiền: " + cartUpdate.getTotalAmount());
+    }
+     public void notifyShowQrCode(QrCodeDto qrCodeDto) {
+        WebSocketMessage<QrCodeDto> message = new WebSocketMessage<>("SHOW_QR_CODE", qrCodeDto);
+        template.convertAndSend(CUSTOMER_DISPLAY_TOPIC, message);
+        System.out.println("Đã đẩy yêu cầu hiển thị QR qua WebSocket.");
     }
 }
