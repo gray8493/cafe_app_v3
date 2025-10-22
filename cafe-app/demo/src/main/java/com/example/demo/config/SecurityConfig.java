@@ -32,15 +32,16 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 1. Các URL cho phép truy cập công khai (permitAll)
                 .requestMatchers(
-                    "/", 
-                    "/register", 
-                    "/css/**", 
-                    "/js/**", 
+                    "/",
+                    "/register",
+                    "/css/**",
+                    "/js/**",
                     "/images/**",
                     "/static/**",
                     "/webjars/**",
                     "/ws-suggest/**", // Cho phép kết nối WebSocket
-                    "/api/suggestions/**" // API gợi ý
+                    "/api/suggestions/**", // API gợi ý
+                    "/api/customer-display/**" // API phân tích khuôn mặt khách hàng
                 ).permitAll()
 
                 // 2. Các URL yêu cầu xác thực nhưng không cần vai trò cụ thể (authenticated)

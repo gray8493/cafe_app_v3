@@ -26,6 +26,34 @@ public class CustomerService {
         return customerRepository.findAll();
     }
 
+    public List<Customer> searchCustomers(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllCustomers();
+        }
+        // Tìm kiếm theo tên, email hoặc số điện thoại
+        return customerRepository.findAll().stream()
+                .filter(customer ->
+                    (customer.getName() != null && customer.getName().toLowerCase().contains(keyword.toLowerCase())) ||
+                    (customer.getEmail() != null && customer.getEmail().toLowerCase().contains(keyword.toLowerCase())) ||
+                    (customer.getPhone() != null && customer.getPhone().contains(keyword))
+                )
+                .toList();
+    }
+
+    /**
+     * Tăng điểm cho khách hàng khi hoàn thành đơn hàng
+     */
+    @Transactional
+    public void addPointsToCustomer(Long customerId, int points) {
+        if (customerId == null || points <= 0) {
+            return;
+        }
+
+        Customer customer = getCustomerById(customerId);
+        customer.addPoints(points);
+        saveCustomer(customer);
+    }
+
     public Customer getCustomerById(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khách hàng với ID: " + id));

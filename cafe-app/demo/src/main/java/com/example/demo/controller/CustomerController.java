@@ -28,8 +28,8 @@ public class CustomerController {
     // Lấy tất cả khách hàng (cho AJAX)
     @GetMapping // URL sẽ là /api/admin/customers (do @RequestMapping của lớp)
     // @ResponseBody // Không cần @ResponseBody khi dùng @RestController
-    public List<Customer> getAllCustomersApi() {
-        return customerService.getAllCustomers();
+    public List<Customer> getAllCustomersApi(@RequestParam(required = false) String search) {
+        return customerService.searchCustomers(search);
     }
 
     // Lấy một khách hàng theo ID

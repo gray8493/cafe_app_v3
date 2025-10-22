@@ -26,16 +26,19 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MenuRepository menuRepository;
     private final CustomerRepository customerRepository;
+    private final CustomerService customerService;
 
     // ID mặc định cho "Khách vãng lai". Đảm bảo có một khách hàng với ID này trong CSDL.
     private static final Long GUEST_CUSTOMER_ID = 1L;
 
     public OrderService(OrderRepository orderRepository,
-                        MenuRepository menuRepository,
-                        CustomerRepository customerRepository) {
+                         MenuRepository menuRepository,
+                         CustomerRepository customerRepository,
+                         CustomerService customerService) {
         this.orderRepository = orderRepository;
         this.menuRepository = menuRepository;
         this.customerRepository = customerRepository;
+        this.customerService = customerService;
     }
 
     /**
@@ -65,6 +68,10 @@ public class OrderService {
             if (customerId != null) {
                 customer = customerRepository.findById(customerId)
                         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khách hàng với ID: " + customerId));
+                // Tăng điểm cho khách hàng khi tạo đơn hàng mới (không phải cập nhật)
+                if (customerId != 1L) {
+                    customerService.addPointsToCustomer(customerId, 1);
+                }
             } else {
                 customer = customerRepository.findById(GUEST_CUSTOMER_ID)
                         .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy khách hàng vãng lai với ID " + GUEST_CUSTOMER_ID + ". Vui lòng tạo trước."));
@@ -134,7 +141,10 @@ public class OrderService {
         // Đặt trạng thái cuối cùng của đơn hàng là HOÀN THÀNH
         order.setStatus("COMPLETED");
 
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+
+        return savedOrder;
     } 
 
     private Optional<Order> findExistingPendingOrder(Long customerId, String tableNumber) {

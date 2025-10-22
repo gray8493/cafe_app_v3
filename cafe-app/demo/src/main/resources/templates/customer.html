@@ -58,6 +58,12 @@
         </form>
 
         <h2>Danh sách khách hàng</h2>
+
+        <!-- Thanh tìm kiếm -->
+        <div class="form-group" style="margin-bottom: 20px;">
+            <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+        </div>
+
         <table>
             <thead>
                 <tr>
@@ -66,6 +72,7 @@
                     <th>Email</th>
                     <th>Số điện thoại</th>
                     <th>Địa chỉ</th>
+                    <th>Điểm thưởng</th>
                     <th>Hành động</th>
                 </tr>
             </thead>
@@ -97,18 +104,19 @@
         }
 
         // --- LOGIC CRUD ---
-        async function loadCustomers() {
+        async function loadCustomers(searchKeyword = '') {
             try {
-                const response = await fetch(apiUrl);
+                const url = searchKeyword ? `${apiUrl}?search=${encodeURIComponent(searchKeyword)}` : apiUrl;
+                const response = await fetch(url);
                 if (!response.ok) {
                     const textError = await response.text();
                     throw new Error(`Lỗi HTTP: ${response.status} - ${textError}`);
                 }
-                
+
                 const customers = await response.json();
                 const table = document.getElementById('customerTable');
                 table.innerHTML = '';
-                
+
                 customers.forEach(customer => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -117,6 +125,7 @@
                         <td>${escapeHtml(customer.email)}</td>
                         <td>${escapeHtml(customer.phone)}</td>
                         <td>${escapeHtml(customer.address || '')}</td>
+                        <td><span class="badge bg-warning text-dark">${customer.points || 0} điểm</span></td>
                         <td class="actions">
                             <button onclick="editCustomer(${customer.id}, '${escapeHtml(customer.name)}', '${escapeHtml(customer.email)}', '${escapeHtml(customer.phone)}', '${escapeHtml(customer.address || '')}')" class="secondary">Sửa</button>
                             <button onclick="deleteCustomer(${customer.id})" class="danger">Xóa</button>
@@ -124,7 +133,7 @@
                     `;
                     table.appendChild(row);
                 });
-                
+
             } catch (error) {
                 console.error('Lỗi khi tải danh sách khách hàng:', error);
                 showAlert('Có lỗi xảy ra khi tải danh sách khách hàng: ' + error.message, 'error');
@@ -213,6 +222,17 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('customerForm').addEventListener('submit', saveCustomer);
             loadCustomers();
+
+            // Thêm event listener cho thanh tìm kiếm
+            const searchInput = document.getElementById('searchInput');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadCustomers(e.target.value.trim());
+                }, 300); // Đợi 300ms sau khi người dùng ngừng gõ
+            });
         });
     </script>
 </body>

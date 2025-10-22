@@ -55,7 +55,7 @@ public class SuggestionController {
             return ResponseEntity.ok(responseDto);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body(null); 
+            return ResponseEntity.internalServerError().body(new SuggestionResponseDto(0, "error", "Lỗi xử lý ảnh: " + e.getMessage()));
         }
     }
     
