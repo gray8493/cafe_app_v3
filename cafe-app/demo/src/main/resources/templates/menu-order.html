@@ -39,6 +39,9 @@
                 <button class="btn btn-outline-primary" onclick="openCustomerDisplay()">
                     <i class="bi bi-display"></i> Mở màn hình KH
                 </button>
+                <button class="btn btn-outline-success" onclick="openSuggestionModal()">
+                    <i class="bi bi-camera"></i> Gợi ý
+                </button>
             </div>
             <ul class="nav nav-pills mb-3" id="category-tabs"></ul>
             <div class="tab-content" id="menu-items-container"></div>
@@ -69,6 +72,9 @@
 <!-- Modal Hiển thị mã QR -->
 <div class="modal fade" id="qrCodeModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Quét mã VietQR để thanh toán</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div id="qrCodeContainer"></div><p class="text-center mt-2">Tổng số tiền: <strong id="qrTotalAmount"></strong></p></div></div></div></div>
 
+<!-- Modal Hiển thị gợi ý -->
+<div class="modal fade" id="suggestionModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-lightbulb me-2"></i>Gợi ý đồ uống phù hợp</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><div id="loadingSpinner" style="display: none;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Đang phân tích...</span></div><p class="mt-2">Đang phân tích khuôn mặt...</p></div><div id="suggestionResult" style="display: none;"><div class="alert alert-success"><h6 class="alert-heading">Gợi ý cho bạn:</h6><p class="mb-2" id="suggestionText"></p><p class="mb-0"><small class="text-muted" id="suggestionDetails"></small></p></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div></div></div></div>
+
 <!-- Tải Bootstrap JS TRƯỚC script tùy chỉnh của bạn -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Script tùy chỉnh -->
@@ -79,7 +85,7 @@
     const customerDisplayApiUrl = '/api/customer-display/update-cart';
     const generateQrApiUrl = '/api/customer-display/generate-qr';
     
-    let menuData = {}, shoppingCart = [], currentItemForModal = null, itemCustomizationModal = null, qrCodeModal = null;
+    let menuData = {}, shoppingCart = [], currentItemForModal = null, itemCustomizationModal = null, qrCodeModal = null, suggestionModal = null;
     let currentTotal = 0;
 
     // --- CÁC HÀM TIỆN ÍCH ---
@@ -109,8 +115,91 @@
     async function handlePayment(){const paymentMethod=document.querySelector('input[name="paymentMethod"]:checked').value;if(shoppingCart.length===0){alert('Vui lòng thêm món vào đơn hàng.');return}if(paymentMethod==='QR'){try{await fetch(generateQrApiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({totalAmount:currentTotal})});alert('Đã gửi yêu cầu hiển thị mã QR đến màn hình của khách hàng.')}catch(error){alert('Lỗi khi tạo mã QR.');console.error("Lỗi khi gọi API tạo QR:",error)}return}if(paymentMethod==='CASH'){const cashReceived=parseFloat(document.getElementById('cashReceivedInput').value)||0;if(cashReceived<currentTotal){alert('Số tiền khách đưa không đủ.');return}await confirmAndSaveOrder(paymentMethod,cashReceived)}}
     async function confirmAndSaveOrder(paymentMethod,cashReceived=null){const customerId=document.getElementById('customerIdInput').value?parseInt(document.getElementById('customerIdInput').value):null;const tableNumber=document.getElementById('tableNumberInput').value.trim();const orderType=document.querySelector('input[name="orderType"]:checked').value;if(orderType==='EAT_IN'&&!tableNumber){alert('Vui lòng nhập số bàn.');return}const orderItemsDto=shoppingCart.map(item=>({menuItemId:item.menuItemId,quantity:item.quantity,selectedSize:item.selectedSize,notes:item.notes,toppingIds:item.toppingIds}));const orderRequestDto={customerId,orderType,tableNumber,paymentMethod,cashReceived,items:orderItemsDto};try{const response=await fetch(orderApiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderRequestDto)});if(!response.ok){const errorData=await response.json().catch(()=>({message:'Lỗi không xác định'}));throw new Error(errorData.message||`Lỗi server: ${response.status}`)}const newOrder=await response.json();alert(`Tạo đơn hàng thành công! Mã đơn hàng: ${newOrder.id}`);shoppingCart=[];document.getElementById('customerIdInput').value='';document.getElementById('tableNumberInput').value='';document.getElementById('cashReceivedInput').value='';document.getElementById('eatInRadio').checked=true;renderShoppingCart()}catch(error){console.error('Lỗi khi xác nhận đơn hàng:',error);alert('Lỗi khi xác nhận đơn hàng: '+error.message)}}
 
+    // --- LOGIC GỢI Ý CAMERA ---
+    async function openSuggestionModal(){
+        // Hiển thị modal và bắt đầu loading
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('suggestionResult').style.display = 'none';
+        suggestionModal.show();
+
+        // Chờ 1 giây để camera ổn định (mô phỏng thời gian lấy nét)
+        setTimeout(captureAndAnalyze, 1000);
+    }
+
+    async function captureAndAnalyze(){
+        let stream = null;
+        try {
+            // Truy cập camera
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' }
+            });
+
+            // Tạo video element tạm thời
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.muted = true;
+            video.playsInline = true;
+
+            // Chờ video sẵn sàng
+            await new Promise((resolve) => {
+                video.onloadedmetadata = () => {
+                    video.play();
+                    resolve();
+                };
+            });
+
+            // Chờ 500ms để camera lấy nét
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Chụp ảnh
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // Chuyển thành base64
+            const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+
+            // Gửi đến API
+            const response = await fetch('/api/customer-display/analyze-face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageBase64 })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                document.getElementById('suggestionText').textContent = result.suggestion;
+                document.getElementById('suggestionDetails').textContent = `Tuổi ước tính: ${result.age}, Tâm trạng: ${result.emotion}`;
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('suggestionResult').style.display = 'block';
+            } else {
+                throw new Error('Không thể phân tích ảnh');
+            }
+
+        } catch (error) {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            alert('Lỗi khi phân tích ảnh: ' + error.message);
+            console.error('Analysis error:', error);
+        } finally {
+            // Dọn dẹp camera stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+    }
+
     // --- KHỞI TẠO ---
-    document.addEventListener('DOMContentLoaded',()=>{itemCustomizationModal=new bootstrap.Modal(document.getElementById('itemCustomizationModal'));qrCodeModal=new bootstrap.Modal(document.getElementById('qrCodeModal'));document.getElementById('searchInput').addEventListener('input',searchMenuItems);fetchMenuData();togglePaymentDetails()});
+    document.addEventListener('DOMContentLoaded',()=>{
+        itemCustomizationModal=new bootstrap.Modal(document.getElementById('itemCustomizationModal'));
+        qrCodeModal=new bootstrap.Modal(document.getElementById('qrCodeModal'));
+        suggestionModal=new bootstrap.Modal(document.getElementById('suggestionModal'));
+        document.getElementById('searchInput').addEventListener('input',searchMenuItems);
+        fetchMenuData();
+        togglePaymentDetails();
+
+    });
 </script>
 </body>
 </html>

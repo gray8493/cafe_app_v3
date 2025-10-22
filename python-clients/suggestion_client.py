@@ -10,12 +10,26 @@ import time
 import json
 
 SERVER_URL = "http://localhost:8080/api/customer-display/analyze-face"
-CAMERA_INDEX = 0
+
+def find_available_camera():
+    """Tìm camera có sẵn từ index 0 đến 4"""
+    for index in range(5):  # Thử từ 0 đến 4
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            cap.release()
+            return index
+    return None
 
 def main():
-    cap = cv2.VideoCapture(CAMERA_INDEX)
+    camera_index = find_available_camera()
+    if camera_index is None:
+        print("Không tìm thấy webcam nào khả dụng. Vui lòng kiểm tra kết nối camera.")
+        print("Gợi ý: Đảm bảo camera được kết nối và không bị chương trình khác sử dụng.")
+        return
+
+    cap = cv2.VideoCapture(camera_index)
     if not cap.isOpened():
-        print("Không thể mở webcam")
+        print(f"Không thể mở camera với index {camera_index}")
         return
         
     print("Chương trình đang chạy... Nhấn 'c' để chụp và phân tích, 'q' để thoát.")
