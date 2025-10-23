@@ -32,11 +32,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0.0) FROM Order o WHERE o.orderDate >= ?1 AND o.orderDate < ?2 AND o.status = 'COMPLETED'")
     Double getDailyRevenue(LocalDateTime startOfDay, LocalDateTime endOfDay);
 
-  
+    @Query("SELECT COUNT(o) FROM Order o WHERE DATE(o.orderDate) = CURRENT_DATE AND o.status = 'COMPLETED'")
+    Long countOrdersToday();
+
     List<Order> findTop5ByOrderByOrderDateDesc();
 
-    
-    
+
+
+
+
 
      List<Order> findByCustomerId(Long customerId);
 

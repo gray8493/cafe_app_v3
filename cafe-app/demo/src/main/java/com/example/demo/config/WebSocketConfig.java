@@ -1,6 +1,7 @@
 package com.example.demo.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -11,7 +12,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
+    public void configureMessageBroker(@NonNull MessageBrokerRegistry config) {
         // Vai trò 1: Thiết lập "kênh" (topic) để gửi tin nhắn
         // Dòng này nói rằng: "Các tin nhắn có đích đến bắt đầu bằng '/topic' sẽ được gửi đến tất cả các client đã đăng ký."
         // Đây là lý do tại sao trong SuggestionNotifier.java, bạn gửi đến "/topic/suggestions".
@@ -23,7 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
+    public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         // Vai trò 3: Tạo "cổng kết nối" (endpoint)
         // Dòng này tạo ra một endpoint tại URL "/ws-suggest" mà client (trang suggestion_display.html) có thể kết nối tới.
         // "withSockJS()" là để hỗ trợ các trình duyệt cũ không có WebSocket gốc.

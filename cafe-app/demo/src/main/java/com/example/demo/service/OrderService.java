@@ -253,7 +253,8 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public DashboardStatsDto getDashboardStatistics() {
-        Long totalOrders = orderRepository.count();
+        Long totalOrders = orderRepository.countOrdersToday();
+        if (totalOrders == null) totalOrders = 0L;
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
         Double todayRevenue = orderRepository.getDailyRevenue(startOfDay, endOfDay);
