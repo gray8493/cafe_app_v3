@@ -402,15 +402,18 @@
 
         if (paymentMethod === 'QR') {
             try {
+                // Hiển thị mã QR trước
                 await fetch(generateQrApiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ totalAmount: currentTotal })
                 });
-                alert('Đã gửi yêu cầu hiển thị mã QR đến màn hình của khách hàng.');
+
+                // Sau đó tạo đơn hàng ngay lập tức
+                await confirmAndSaveOrder(paymentMethod, null);
             } catch (error) {
-                alert('Lỗi khi tạo mã QR.');
-                console.error("Lỗi khi gọi API tạo QR:", error);
+                alert('Lỗi khi xử lý thanh toán QR.');
+                console.error("Lỗi khi xử lý thanh toán QR:", error);
             }
             return;
         }
