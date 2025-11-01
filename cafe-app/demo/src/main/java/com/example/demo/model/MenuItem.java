@@ -8,14 +8,18 @@ public class MenuItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String name;
-    
+
     private String description;
     private String image;
-   
+
     private boolean available = true;
+
+    // Trường mới: trạng thái món
+    @Enumerated(EnumType.STRING)
+    private MenuItemStatus status = MenuItemStatus.AVAILABLE;
 
     // --- Các trường MỚI và đã điều chỉnh ---
 
@@ -63,6 +67,10 @@ public class MenuItem {
     // Getters và Setters cho các trường mới
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    // Getter và Setter cho trường trạng thái
+    public MenuItemStatus getStatus() { return status; }
+    public void setStatus(MenuItemStatus status) { this.status = status; }
     public Double getPriceS() { return priceS; }
     public void setPriceS(Double priceS) { this.priceS = priceS; }
     public Double getPriceM() { return price; }

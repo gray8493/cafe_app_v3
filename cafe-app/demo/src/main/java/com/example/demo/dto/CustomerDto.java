@@ -7,6 +7,7 @@ public class CustomerDto {
     private String phone;
     private String address;
     private Integer points;
+    private String preferences;
 
     // Constructors
     public CustomerDto() {}
@@ -29,4 +30,6 @@ public class CustomerDto {
     public void setAddress(String address) { this.address = address; }
     public Integer getPoints() { return points; }
     public void setPoints(Integer points) { this.points = points; }
+    public String getPreferences() { return preferences; }
+    public void setPreferences(String preferences) { this.preferences = preferences; }
 }

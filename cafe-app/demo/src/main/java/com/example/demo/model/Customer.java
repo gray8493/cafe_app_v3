@@ -21,6 +21,9 @@ public class Customer {
     @Column(nullable = false, columnDefinition = "int default 0")
     private Integer points = 0;
 
+    // Trường mới: sở thích khách hàng
+    private String preferences;
+
     // Constructor không tham số (BẮT BUỘC)
     public Customer() {
     }
@@ -43,6 +46,9 @@ public class Customer {
 
     public Integer getPoints() { return points; }
     public void setPoints(Integer points) { this.points = points; }
+
+    public String getPreferences() { return preferences; }
+    public void setPreferences(String preferences) { this.preferences = preferences; }
 
     // Phương thức tiện ích để tăng điểm
     public void addPoints(int points) {

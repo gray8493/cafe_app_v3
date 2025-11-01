@@ -53,6 +53,10 @@
                 <label for="address">Địa chỉ:</label>
                 <input type="text" id="address">
             </div>
+            <div class="form-group">
+                <label for="preferences">Sở thích:</label>
+                <input type="text" id="preferences">
+            </div>
             <button type="submit">Lưu</button>
             <button type="button" onclick="resetForm()" class="secondary">Làm mới</button>
         </form>
@@ -72,6 +76,7 @@
                     <th>Email</th>
                     <th>Số điện thoại</th>
                     <th>Địa chỉ</th>
+                    <th>Sở thích</th>
                     <th>Điểm thưởng</th>
                     <th>Hành động</th>
                 </tr>
@@ -125,9 +130,10 @@
                         <td>${escapeHtml(customer.email)}</td>
                         <td>${escapeHtml(customer.phone)}</td>
                         <td>${escapeHtml(customer.address || '')}</td>
+                        <td>${escapeHtml(customer.preferences || '')}</td>
                         <td><span class="badge bg-warning text-dark">${customer.points || 0} điểm</span></td>
                         <td class="actions">
-                            <button onclick="editCustomer(${customer.id}, '${escapeHtml(customer.name)}', '${escapeHtml(customer.email)}', '${escapeHtml(customer.phone)}', '${escapeHtml(customer.address || '')}')" class="secondary">Sửa</button>
+                            <button onclick="editCustomer(${customer.id}, '${escapeHtml(customer.name)}', '${escapeHtml(customer.email)}', '${escapeHtml(customer.phone)}', '${escapeHtml(customer.address || '')}', '${escapeHtml(customer.preferences || '')}')" class="secondary">Sửa</button>
                             <button onclick="deleteCustomer(${customer.id})" class="danger">Xóa</button>
                         </td>
                     `;
@@ -148,7 +154,8 @@
                 name: document.getElementById('name').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
-                address: document.getElementById('address').value.trim()
+                address: document.getElementById('address').value.trim(),
+                preferences: document.getElementById('preferences').value.trim()
             };
             
             try {
@@ -204,12 +211,13 @@
             }
         }
         
-        function editCustomer(id, name, email, phone, address) {
+        function editCustomer(id, name, email, phone, address, preferences) {
             document.getElementById('id').value = id;
             document.getElementById('name').value = name;
             document.getElementById('email').value = email;
             document.getElementById('phone').value = phone;
             document.getElementById('address').value = address || '';
+            document.getElementById('preferences').value = preferences || '';
             window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên đầu trang
         }
         
